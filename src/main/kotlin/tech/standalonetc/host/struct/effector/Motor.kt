@@ -16,7 +16,7 @@ class Motor(name: String, private val direction: Direction = Direction.FORWARD) 
     override val power = OutputDriver<Double> { raw ->
         raw.checkedValue(-1.0..1.0)?.let {
             it * direction.sign
-        } ?: logger.warning("Invalid motor power value: $raw").run { null }
+        } ?: logger.warn("Invalid motor power value: $raw").run { null }
     }
 
     override fun toString(): String = "${javaClass.simpleName}[$name]"

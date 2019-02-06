@@ -1,16 +1,23 @@
 package tech.standalonetc.host
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import org.mechdancer.common.concurrent.repeatWithTimeout
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.plusAssign
 import tech.standalonetc.host.data.toColorSensorData
 import tech.standalonetc.host.data.toEncoderData
 import tech.standalonetc.host.data.toGamepadData
 import tech.standalonetc.host.data.toGyroData
-import tech.standalonetc.host.struct.*
+import tech.standalonetc.host.struct.Device
+import tech.standalonetc.host.struct.RobotComponent
 import tech.standalonetc.host.struct.effector.ContinuousServo
 import tech.standalonetc.host.struct.effector.Motor
 import tech.standalonetc.host.struct.effector.Servo
+import tech.standalonetc.host.struct.find
+import tech.standalonetc.host.struct.mapWithName
 import tech.standalonetc.host.struct.sensor.*
 import tech.standalonetc.host.struct.sensor.gamepad.Gamepad
 import tech.standalonetc.protocol.RobotPacket
@@ -21,17 +28,15 @@ import java.util.concurrent.ConcurrentSkipListSet
 
 class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope(), Closeable {
 
-    private lateinit var devices: Map<String, Device>
+    val devices: MutableList<Device> = mutableListOf()
 
     private lateinit var idMapping: Map<Byte, String>
-
 
     private lateinit var networkTools: NetworkTools
 
     private val availableDevices: MutableList<Device> = mutableListOf()
 
     private var initialized = false
-
 
 
     //Sensors accessor
@@ -129,7 +134,7 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
         //Avoid repeatedly call
         if (initialized) throw IllegalStateException()
 
-        devices = components.findAllDevices().associateBy { it.name }
+        val namedDevices = devices.associateBy { it.name }
 
         //Save ids
         idMapping = nameAndId.entries.associate { (k, v) -> v to k }
@@ -139,31 +144,22 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
         networkTools.setPacketConversion(RobotPacket.Conversion)
 
         //Generate devices requests
-        val request = devices.map { (name, _) ->
+        val request = namedDevices.map { (name, _) ->
             RobotPacket.DeviceDescriptionPacket(
                 nameAndId[name] ?: throw IllegalArgumentException("Device $name is not mapped with id"), name
             )
         }
 
-        logger.info("Devices need to request: \n${request.joinToString(separator = "\n") {
-            "[${it.deviceId}:${it.deviceName}]"
+        logger.info("Devices need to request:")
+        request.forEach {
+            logger.info("id: ${it.deviceId} name: ${it.deviceName}")
         }
-        }")
+
 
         //Wait opposite
-        runBlocking {
-            var job: Job? = null
-            kotlinx.coroutines.withTimeout(oppositeTimeout) {
-                job = GlobalScope.launch(Dispatchers.IO) {
-                    networkTools.findOpposite()
-                }
-                job?.join()
-            }
-            job?.cancel()
-            if (job?.isCompleted != true)
-                throw  RuntimeException("Unable to find opposite.")
-        }
-
+        repeatWithTimeout(oppositeTimeout) {
+            networkTools.askOppositeAddress()
+        } ?: throw RuntimeException("Unable to find opposite.")
 
         logger.info("Find opposite.")
 
@@ -172,7 +168,8 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
             runBlocking {
                 request.map {
                     async(Dispatchers.IO) {
-                        devices.getValue(it.deviceName) to (networkTools.sendPacket(it)?.decodeToBoolean() ?: false)
+                        namedDevices.getValue(it.deviceName) to (networkTools.sendPacket(it)?.decodeToBoolean()
+                            ?: false)
                     }
                 }.awaitAll()
             }.toMap()
@@ -183,23 +180,72 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
         availableDevices.addAll(result.filterValues { it }.keys)
 
 
-        //Configuration components' relationship
-        components.forEach {
-            if ((it is Device && it in availableDevices) || it !is Device)
-                this += it
-        }
+        //Setup devices
+        setupAvailableDevices()
 
         //Call init
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
 
         //Initialize sensor accessors
-        encoders = availableDevices.find<Encoder>().mapWithName()
-        gyros = availableDevices.find<Gyro>().mapWithName()
-        touches = availableDevices.find<TouchSensor>().mapWithName()
-        colors = availableDevices.find<ColorSensor>().mapWithName()
+        initSensors()
 
-        //Link output
+        //Link outputs
+        linkOutputs(nameAndId)
 
+        logger.info("Initialized.")
+        initialized = true
+    }
+
+
+    /**
+     * Init host computer controller
+     *
+     * Without require devices.
+     */
+    fun initWithoutWaiting(vararg mapId: Pair<String, Byte>) {
+        val nameAndId: Map<String, Byte> = mapId.toMap()
+
+        //Avoid repeatedly call
+        if (initialized) throw IllegalStateException()
+
+        val namedDevices = devices.associateBy { it.name }
+
+        //Save ids
+        idMapping = nameAndId.entries.associate { (k, v) -> v to k }
+
+        initNetworkTools()
+
+        //Check id
+        namedDevices.forEach { (name, _) ->
+            nameAndId[name] ?: throw IllegalArgumentException("Device $name is not mapped with id")
+        }
+
+        //Assume that all devices are available
+        availableDevices.addAll(devices)
+
+        //Setup devices
+        setupAvailableDevices()
+
+        //Call init
+        components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
+
+        //Initialize sensor accessors
+        initSensors()
+
+        //Link outputs
+        linkOutputs(nameAndId)
+
+        logger.info("Initialized.")
+        initialized = true
+    }
+
+
+    private fun initNetworkTools() {
+        networkTools = NetworkTools("Host", "Robot", 2, 2, onPacketReceive = packetListener)
+        networkTools.setPacketConversion(RobotPacket.Conversion)
+    }
+
+    private fun linkOutputs(nameAndId: Map<String, Byte>) {
         logger.info("Linking Motors")
         availableDevices.find<Motor>().forEach { device ->
             shutdownHook.add { device.power.close() }
@@ -240,10 +286,21 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
                 )
             }
         }
-
-        logger.info("Initialized.")
-        initialized = true
     }
+
+    private fun initSensors() {
+        encoders = availableDevices.find<Encoder>().mapWithName()
+        gyros = availableDevices.find<Gyro>().mapWithName()
+        touches = availableDevices.find<TouchSensor>().mapWithName()
+        colors = availableDevices.find<ColorSensor>().mapWithName()
+    }
+
+    private fun setupAvailableDevices() {
+        availableDevices.forEach {
+            this += it
+        }
+    }
+
 
     override fun close() {
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::stop)

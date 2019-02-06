@@ -7,6 +7,7 @@ import org.mechdancer.common.extension.log4j.logger
 import org.mechdancer.dependency.NamedComponent
 import org.mechdancer.dependency.UniqueComponent
 import org.slf4j.Logger
+import tech.standalonetc.host.struct.Device
 
 fun ByteArray.decodeToBoolean() = when (firstOrNull()?.toInt()) {
     1 -> true
@@ -15,15 +16,6 @@ fun ByteArray.decodeToBoolean() = when (firstOrNull()?.toInt()) {
     else -> throw IllegalArgumentException()
 }
 
-fun withTimeout(timeout: Long, block: () -> Boolean): Boolean {
-    if (timeout <= 0L) throw IllegalArgumentException("Timed out immediately")
-    val start = System.currentTimeMillis()
-    var result = false
-    while (System.currentTimeMillis() - start < timeout
-        && !block().also { result = it }
-    );
-    return result
-}
 
 fun <T : Comparable<T>> T.checkedValue(range: ClosedFloatingPointRange<T>) =
     takeIf { it in range }
@@ -37,7 +29,11 @@ val logger: Logger = logger("Robot") {
 fun deviceBundle(block: DeviceBundle.() -> Unit) = DeviceBundle().apply(block)
 
 fun Robot.setupDeviceBundle(deviceBundle: DeviceBundle) =
-    deviceBundle.devices.forEach { (_, device) -> setup(device) }
+    deviceBundle.devices.forEach { (_, component) ->
+        if(component !is Device)
+            setup(component)
+        else devices.add(component)
+    }
 
 fun Robot.setupDeviceBundle(block: DeviceBundle.() -> Unit) = setupDeviceBundle(deviceBundle(block))
 
