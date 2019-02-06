@@ -1,5 +1,7 @@
 # host
 
+[![Build Status](https://travis-ci.com/StandaloneTC/host.svg?branch=master)](https://travis-ci.com/StandaloneTC/host)
+
 Host is the *upper monitor* of slave(Android phone on the robot), 
 responsible for communication with it. While the *OpMode* is running, slave keeps sending sensor data. 
 Once host receives data and finds data changed, 
