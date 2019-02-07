@@ -3,20 +3,16 @@ package tech.standalonetc.host.struct.preset.chassis
 import org.mechdancer.dataflow.core.broadcast
 import org.mechdancer.dataflow.core.minus
 import org.mechdancer.dataflow.core.post
-import org.mechdancer.dependency.Component
-import org.mechdancer.dependency.DependencyManager
-import org.mechdancer.dependency.Dependent
-import org.mechdancer.dependency.must
-import tech.standalonetc.host.struct.TreeComponent
+import org.mechdancer.dependency.*
 import tech.standalonetc.host.struct.effector.Motor
 
-open class MecanumChassis : TreeComponent("chassis", null), Dependent, Chassis {
+open class MecanumChassis : UniqueComponent<MecanumChassis>(), Dependent, Chassis {
     private val manager = DependencyManager()
 
-    private val lf by manager.must<Motor>("LF".joinPrefix())
-    private val lb by manager.must<Motor>("LB".joinPrefix())
-    private val rf by manager.must<Motor>("RF".joinPrefix())
-    private val rb by manager.must<Motor>("RB".joinPrefix())
+    private val lf by manager.must<Motor>("chassis.LF")
+    private val lb by manager.must<Motor>("chassis.LB")
+    private val rf by manager.must<Motor>("chassis.RF")
+    private val rb by manager.must<Motor>("chassis.RB")
 
     val descartesControl = broadcast<Descartes>()
 
@@ -44,6 +40,6 @@ open class MecanumChassis : TreeComponent("chassis", null), Dependent, Chassis {
 
     data class Descartes(val x: Double, val y: Double, val w: Double)
 
-    override fun toString(): String = "${javaClass.simpleName}[$name]"
+    override fun toString(): String = javaClass.simpleName
 
 }

@@ -5,7 +5,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.mechdancer.common.concurrent.repeatWithTimeout
-import org.mechdancer.common.extension.log4j.loggerWrapper
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.plusAssign
 import tech.standalonetc.host.data.*
@@ -24,7 +23,10 @@ import tech.standalonetc.protocol.network.PacketCallback
 import java.io.Closeable
 import java.util.concurrent.ConcurrentSkipListSet
 
-class Robot : DynamicScope(), Closeable {
+class Robot(
+    private val loggingNetwork: Boolean = false,
+    private val loggingRemoteHub: Boolean = false
+) : DynamicScope(), Closeable {
 
     val devices: MutableList<Device> = mutableListOf()
 
@@ -245,10 +247,10 @@ class Robot : DynamicScope(), Closeable {
             2,
             2,
             onPacketReceive = packetListener,
+            enableRemoteHubLogger = loggingRemoteHub,
             loggerConfig = {
-                loggerWrapper {
-                    console()
-                }(this)
+                if (loggingNetwork)
+                    loggingConfig(this)
             })
         networkTools.setPacketConversion(RobotPacket.Conversion)
     }

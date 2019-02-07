@@ -1,10 +1,10 @@
 package tech.standalonetc.host
 
-import org.apache.log4j.Level
-import org.mechdancer.common.extension.log4j.logger
+import org.mechdancer.common.extension.log4j.loggerWrapper
 import org.mechdancer.dependency.NamedComponent
 import org.mechdancer.dependency.UniqueComponent
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import tech.standalonetc.host.struct.Device
 
 fun ByteArray.decodeToBoolean() = when (firstOrNull()?.toInt()) {
@@ -18,11 +18,12 @@ fun ByteArray.decodeToBoolean() = when (firstOrNull()?.toInt()) {
 fun <T : Comparable<T>> T.checkedValue(range: ClosedFloatingPointRange<T>) =
     takeIf { it in range }
 
-val logger: Logger = logger("Robot") {
-    level = Level.ALL
+val loggingConfig = loggerWrapper {
     console()
     file()
 }
+
+val logger: Logger = LoggerFactory.getLogger("Robot").also(loggingConfig)
 
 fun deviceBundle(block: DeviceBundle.() -> Unit) = DeviceBundle().apply(block)
 

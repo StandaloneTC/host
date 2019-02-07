@@ -3,10 +3,10 @@ package tech.standalonetc.host
 import org.junit.Before
 import org.junit.Test
 import org.mechdancer.dataflow.core.minus
+import org.mechdancer.dependency.plusAssign
 import tech.standalonetc.host.struct.effector.Motor
 import tech.standalonetc.host.struct.preset.chassis.MecanumChassis
 import tech.standalonetc.host.struct.sensor.gamepad.Gamepad
-import tech.standalonetc.host.struct.setupRecursive
 
 class TestHost {
 
@@ -18,9 +18,9 @@ class TestHost {
 
     @Before
     fun before() {
-        robot = Robot()
+        robot = Robot(loggingNetwork = true, loggingRemoteHub = true)
 
-        robot.setupRecursive(chassis)
+        robot += chassis
 
         gamepad = robot.master
 
@@ -36,7 +36,7 @@ class TestHost {
 
         robot.setupDeviceBundle(devices)
 
-        robot.initWithoutWaiting(*devices.idMapping.toList().toTypedArray())
+        robot.init(*devices.idMapping.toList().toTypedArray())
 
     }
 
