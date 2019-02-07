@@ -1,7 +1,5 @@
 package tech.standalonetc.host.struct.effector
 
-import org.mechdancer.dataflow.blocks.IBroadcastBlock
-
 /**
  * Pwm output
  *
@@ -10,6 +8,6 @@ import org.mechdancer.dataflow.blocks.IBroadcastBlock
  */
 interface PwmOutput {
 
-    val pwmEnable: IBroadcastBlock<Boolean>
+    val pwmEnable: OutputDriver<Boolean>
 
 }

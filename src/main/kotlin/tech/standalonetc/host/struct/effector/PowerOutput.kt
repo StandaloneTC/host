@@ -1,7 +1,5 @@
 package tech.standalonetc.host.struct.effector
 
-import org.mechdancer.dataflow.blocks.IBroadcastBlock
-
 /**
  * PowerOutput
  *
@@ -11,6 +9,6 @@ import org.mechdancer.dataflow.blocks.IBroadcastBlock
 interface PowerOutput {
 
     /**Power source*/
-    val power: IBroadcastBlock<Double>
+    val power: OutputDriver<Double>
 
 }

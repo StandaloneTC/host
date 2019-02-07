@@ -1,7 +1,5 @@
 package tech.standalonetc.host.struct.effector
 
-import org.mechdancer.dataflow.blocks.IBroadcastBlock
-
 /**
  * Position output
  *
@@ -11,6 +9,6 @@ import org.mechdancer.dataflow.blocks.IBroadcastBlock
 interface PositionOutput {
 
     /** Position source */
-    val position: IBroadcastBlock<Double>
+    val position: OutputDriver<Double>
 
 }
