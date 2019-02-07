@@ -38,10 +38,19 @@ task<Jar>("javadocJar") {
     from("$buildDir/javadoc")
 }
 
+task<Jar>("sourcesJar") {
+    classifier = "sources"
+    from(sourceSets["main"].allSource)
+}
+
 tasks.withType<DokkaTask> {
     outputFormat = "javadoc"
     outputDirectory = "$buildDir/javadoc"
 }
+
+tasks["javadoc"].dependsOn("dokka")
+tasks["jar"].dependsOn("sourcesJar")
+tasks["jar"].dependsOn("javadocJar")
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
