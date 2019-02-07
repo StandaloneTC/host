@@ -1,9 +1,9 @@
 package tech.standalonetc.host.struct.sensor
 
-import org.mechdancer.dataflow.core.ISource
 import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dependency.NamedComponent
-import tech.standalonetc.host.struct.tryPost
+import tech.standalonetc.host.struct.post
 import java.util.concurrent.atomic.AtomicBoolean
 
 class TouchSensor(name: String) : NamedComponent<TouchSensor>(name), Sensor<Boolean> {
@@ -22,8 +22,8 @@ class TouchSensor(name: String) : NamedComponent<TouchSensor>(name), Sensor<Bool
 
     override fun update(new: Boolean) {
         if (_pressed.getAndSet(new) != new) {
-            updated tryPost new
-            (if (new) pressing else releasing) tryPost Unit
+            updated post new
+            (if (new) pressing else releasing) post Unit
         }
     }
 

@@ -1,8 +1,6 @@
 package tech.standalonetc.host
 
 import org.apache.log4j.Level
-import org.mechdancer.common.extension.log4j.Locate
-import org.mechdancer.common.extension.log4j.console
 import org.mechdancer.common.extension.log4j.logger
 import org.mechdancer.dependency.NamedComponent
 import org.mechdancer.dependency.UniqueComponent
@@ -22,7 +20,7 @@ fun <T : Comparable<T>> T.checkedValue(range: ClosedFloatingPointRange<T>) =
 
 val logger: Logger = logger("Robot") {
     level = Level.ALL
-    console(Locate)
+    console()
     file()
 }
 
@@ -30,19 +28,20 @@ fun deviceBundle(block: DeviceBundle.() -> Unit) = DeviceBundle().apply(block)
 
 fun Robot.setupDeviceBundle(deviceBundle: DeviceBundle) =
     deviceBundle.devices.forEach { (_, component) ->
-        if(component !is Device)
+        if (component !is Device)
             setup(component)
         else devices.add(component)
     }
 
 fun Robot.setupDeviceBundle(block: DeviceBundle.() -> Unit) = setupDeviceBundle(deviceBundle(block))
 
-fun Robot.setupDeviceBundleAndInit(deviceBundle: DeviceBundle) {
+fun Robot.setupDeviceBundleAndInit(deviceBundle: DeviceBundle, oppositeTimeout: Long = Long.MAX_VALUE) {
     setupDeviceBundle(deviceBundle)
-    init(*deviceBundle.idMapping.toList().toTypedArray())
+    init(*deviceBundle.idMapping.toList().toTypedArray(), oppositeTimeout = oppositeTimeout)
 }
 
-fun Robot.setupDeviceBundleAndInit(block: DeviceBundle.() -> Unit) = setupDeviceBundleAndInit(deviceBundle(block))
+fun Robot.setupDeviceBundleAndInit(block: DeviceBundle.() -> Unit, oppositeTimeout: Long = Long.MAX_VALUE) =
+    setupDeviceBundleAndInit(deviceBundle(block), oppositeTimeout)
 
 fun NamedComponent<*>.joinPrefix(name: String) = "${type.simpleName!!}[$name].$name"
 

@@ -19,7 +19,7 @@ class Servo(name: String, range: ClosedFloatingPointRange<Double>) : NamedCompon
     override val position: OutputDriver<Double> = OutputDriver { raw ->
         raw.checkedValue(range)?.let {
             mapper(it)
-        } ?: logger.warn("Invalid servo position: $raw").run { null }
+        } ?: logger.warn("Invalid servo position: $raw, from $name").run { null }
     }
 
     override val pwmEnable: OutputDriver<Boolean> = OutputDriver()

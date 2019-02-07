@@ -1,7 +1,7 @@
 package tech.standalonetc.host.struct
 
-import org.mechdancer.dataflow.core.IPostable
-import org.mechdancer.dataflow.core.ISource
+import org.mechdancer.dataflow.core.intefaces.IPostable
+import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dataflow.core.post
 import org.mechdancer.dependency.Component
 import org.mechdancer.dependency.DynamicScope
@@ -20,7 +20,7 @@ fun DynamicScope.setupRecursive(root: TreeComponent) {
  * @receiver source
  */
 @Suppress("UNCHECKED_CAST")
-infix fun <T> ISource<T>.tryPost(value: T) =
+internal infix fun <T> ISource<T>.post(value: T) =
     (this as? IPostable<T>)?.post(value)
 
 

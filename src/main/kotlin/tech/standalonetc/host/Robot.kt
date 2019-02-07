@@ -5,12 +5,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.mechdancer.common.concurrent.repeatWithTimeout
+import org.mechdancer.common.extension.log4j.loggerWrapper
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.plusAssign
-import tech.standalonetc.host.data.toColorSensorData
-import tech.standalonetc.host.data.toEncoderData
-import tech.standalonetc.host.data.toGamepadData
-import tech.standalonetc.host.data.toGyroData
+import tech.standalonetc.host.data.*
 import tech.standalonetc.host.struct.Device
 import tech.standalonetc.host.struct.RobotComponent
 import tech.standalonetc.host.struct.effector.ContinuousServo
@@ -26,7 +24,7 @@ import tech.standalonetc.protocol.network.PacketCallback
 import java.io.Closeable
 import java.util.concurrent.ConcurrentSkipListSet
 
-class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope(), Closeable {
+class Robot : DynamicScope(), Closeable {
 
     val devices: MutableList<Device> = mutableListOf()
 
@@ -81,7 +79,7 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
             is RobotPacket.OperationPeriodPacket -> this@Robot.period = period
             is RobotPacket.OpModeInfoPacket -> {
                 this@Robot.opModeName = opModeName
-                this@Robot.opModeState = opModeState
+                this@Robot.opModeState = toOpModeState()
             }
 
         }
@@ -119,7 +117,7 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
     /**
      * Current opMode state
      */
-    var opModeState = RobotPacket.OpModeInfoPacket.STOP
+    var opModeState = OpModeState.Stop
         private set
 
     /**
@@ -127,7 +125,7 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
      *
      * Repeated calls will produce an exception
      */
-    fun init(vararg mapId: Pair<String, Byte>) {
+    fun init(vararg mapId: Pair<String, Byte>, oppositeTimeout: Long = Long.MAX_VALUE) {
 
         val nameAndId: Map<String, Byte> = mapId.toMap()
 
@@ -241,7 +239,17 @@ class Robot(private val oppositeTimeout: Long = Long.MAX_VALUE) : DynamicScope()
 
 
     private fun initNetworkTools() {
-        networkTools = NetworkTools("Host", "Robot", 2, 2, onPacketReceive = packetListener)
+        networkTools = NetworkTools(
+            "Host",
+            "Robot",
+            2,
+            2,
+            onPacketReceive = packetListener,
+            loggerConfig = {
+                loggerWrapper {
+                    console()
+                }(this)
+            })
         networkTools.setPacketConversion(RobotPacket.Conversion)
     }
 

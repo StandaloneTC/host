@@ -28,3 +28,5 @@ fun RobotPacket.EncoderDataPacket.toEncoderData() = EncoderData(position.toDoubl
 fun RobotPacket.GyroDataPacket.toGyroData() = GyroData(pitchRate, yawRate, rollRate)
 
 fun RobotPacket.ColorSensorDataPacket.toColorSensorData() = ColorSensorData(r, g, b, a)
+
+fun RobotPacket.OpModeInfoPacket.toOpModeState() = OpModeState.values().find { it.code == state }!!

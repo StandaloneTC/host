@@ -1,9 +1,9 @@
 package tech.standalonetc.host.struct.sensor
 
-import org.mechdancer.dataflow.core.ISource
 import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dependency.UniqueComponent
-import tech.standalonetc.host.struct.tryPost
+import tech.standalonetc.host.struct.post
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -20,7 +20,7 @@ class VoltageSensor : UniqueComponent<VoltageSensor>(), Sensor<Double> {
 
     override fun update(new: Double) {
         if (_voltage.getAndSet(new) != new)
-            updated tryPost new
+            updated post new
     }
 
     override fun toString(): String = "VoltageSensor"

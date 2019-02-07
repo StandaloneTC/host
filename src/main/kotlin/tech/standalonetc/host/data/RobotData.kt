@@ -61,3 +61,10 @@ data class GyroData(
     val yawRate: Double,
     val rollRate: Double
 )
+
+enum class OpModeState(internal val code: Byte) {
+    Init(0),
+    Start(1),
+    Stop(2)
+}
+

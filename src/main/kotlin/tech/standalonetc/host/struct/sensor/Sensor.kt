@@ -1,6 +1,6 @@
 package tech.standalonetc.host.struct.sensor
 
-import org.mechdancer.dataflow.core.ISource
+import org.mechdancer.dataflow.core.intefaces.ISource
 import tech.standalonetc.host.struct.Device
 
 /**

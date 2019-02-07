@@ -1,7 +1,7 @@
 package tech.standalonetc.host.struct.sensor.gamepad
 
-import org.mechdancer.dataflow.core.ISource
 import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.intefaces.ISource
 import tech.standalonetc.host.data.GamepadData
 import tech.standalonetc.host.struct.TreeComponent
 import tech.standalonetc.host.struct.sensor.Sensor
@@ -11,7 +11,7 @@ import tech.standalonetc.host.struct.sensor.gamepad.Stick.Coordinate
  * Gamepad
  */
 class Gamepad(index: Int) : TreeComponent("gamepad$index", null),
-                                Sensor<GamepadData> {
+    Sensor<GamepadData> {
     //==============
     // Top area
     //==============
@@ -74,10 +74,18 @@ class Gamepad(index: Int) : TreeComponent("gamepad$index", null),
         left.update(new.leftButton)
         right.update(new.rightButton)
         with(new) {
-            leftStick.update(Stick.Value(Coordinate(leftStickX, leftStickY),
-                                         leftStickButton))
-            rightStick.update(Stick.Value(Coordinate(rightStickX, rightStickY),
-                                          rightStickButton))
+            leftStick.update(
+                Stick.Value(
+                    Coordinate(leftStickX, leftStickY),
+                    leftStickButton
+                )
+            )
+            rightStick.update(
+                Stick.Value(
+                    Coordinate(rightStickX, rightStickY),
+                    rightStickButton
+                )
+            )
         }
         leftTrigger.update(new.leftTrigger)
         rightTrigger.update(new.rightTrigger)

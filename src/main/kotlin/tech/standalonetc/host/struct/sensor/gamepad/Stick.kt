@@ -1,17 +1,17 @@
 package tech.standalonetc.host.struct.sensor.gamepad
 
-import org.mechdancer.dataflow.core.ISource
 import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.intefaces.ISource
 import tech.standalonetc.host.struct.TreeComponent
 import tech.standalonetc.host.struct.sensor.Sensor
-import tech.standalonetc.host.struct.tryPost
+import tech.standalonetc.host.struct.post
 import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Gamepad stick
  */
 class Stick(name: String, gamepad: Gamepad) : TreeComponent(name, gamepad),
-                                              Sensor<Stick.Value> {
+    Sensor<Stick.Value> {
 
     private val value = AtomicReference(Value(Coordinate(.0, .0), false))
 
@@ -38,9 +38,9 @@ class Stick(name: String, gamepad: Gamepad) : TreeComponent(name, gamepad),
     override fun update(new: Value) {
         val last = this.value.getAndSet(new)
         if (last != new) {
-            updated tryPost new
-            if (last.coordinate != new.coordinate) valueChanged tryPost new.coordinate
-            if (last.pressed != new.pressed) (if (new.pressed) pressing else releasing) tryPost Unit
+            updated post new
+            if (last.coordinate != new.coordinate) valueChanged post new.coordinate
+            if (last.pressed != new.pressed) (if (new.pressed) pressing else releasing) post Unit
         }
     }
 

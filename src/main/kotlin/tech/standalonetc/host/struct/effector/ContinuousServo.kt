@@ -15,7 +15,7 @@ class ContinuousServo(name: String) :
 
     override val power: OutputDriver<Double> = OutputDriver {
         it.checkedValue(-1.0..1.0)
-            ?: logger.warn("Invalid continuous servo power: $it").run { null }
+            ?: logger.warn("Invalid continuous servo power: $it, from $name").run { null }
     }
 
     override val pwmEnable: OutputDriver<Boolean> = OutputDriver()

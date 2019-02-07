@@ -1,10 +1,10 @@
 package tech.standalonetc.host.struct.sensor
 
-import org.mechdancer.dataflow.core.ISource
 import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dependency.NamedComponent
 import tech.standalonetc.host.data.EncoderData
-import tech.standalonetc.host.struct.tryPost
+import tech.standalonetc.host.struct.post
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.PI
 
@@ -27,7 +27,7 @@ class Encoder(name: String, cpr: Double = 360.0) : NamedComponent<Encoder>(name)
     override fun update(new: EncoderData) {
         val transformed = EncoderData(position * ratio, speed * ratio)
         if (value.getAndSet(transformed) != transformed)
-            updated tryPost transformed
+            updated post transformed
     }
 
     override fun toString(): String = "${javaClass.simpleName}[$name]"
