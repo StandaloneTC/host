@@ -25,7 +25,7 @@ class TestHost {
         gamepad = robot.master
 
 
-        val devices= deviceBundle {
+        val devices = deviceBundle {
             "chassis" {
                 motor("LF", Motor.Direction.REVERSED)
                 motor("LB", Motor.Direction.REVERSED)
@@ -36,7 +36,7 @@ class TestHost {
 
         robot.setupDeviceBundle(devices)
 
-        robot.init(*devices.idMapping.toList().toTypedArray())
+        robot.initWithoutWaiting(*devices.idMapping.toList().toTypedArray())
 
     }
 
