@@ -1,7 +1,7 @@
 package tech.standalonetc.host.struct.effector
 
-import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dependency.Component
+import tech.standalonetc.host.DataBlock
 
 /**
  * Position output
@@ -11,7 +11,7 @@ import org.mechdancer.dependency.Component
  */
 interface PositionOutput : Component {
 
-    /** Position source */
-    val position: ISource<Double>
+    /** Position block */
+    val position: DataBlock<Double>
 
 }

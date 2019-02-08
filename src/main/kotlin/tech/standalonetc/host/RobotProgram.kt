@@ -4,9 +4,12 @@ import org.mechdancer.dataflow.core.linkTo
 import tech.standalonetc.host.data.OpModeState
 import java.io.Closeable
 
-abstract class RobotProgram<T : Robot>(protected val robot: T) : Runnable, Closeable {
+abstract class RobotProgram<T : Robot> : Runnable, Closeable {
 
-    init {
+    protected lateinit var robot: T
+        private set
+
+    protected fun init() {
         robot.opModeState linkTo {
             when (it) {
                 OpModeState.Init -> onOpModeInit()
@@ -28,7 +31,5 @@ abstract class RobotProgram<T : Robot>(protected val robot: T) : Runnable, Close
 
     }
 
-    override fun close() {
-    }
 
 }

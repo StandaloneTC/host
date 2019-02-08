@@ -18,7 +18,7 @@ class TestHost {
 
     @Before
     fun before() {
-        robot = Robot(loggingNetwork = true, loggingRemoteHub = true)
+        robot = Robot(loggingNetwork = true, loggingRemoteHub = false)
 
         robot += chassis
 

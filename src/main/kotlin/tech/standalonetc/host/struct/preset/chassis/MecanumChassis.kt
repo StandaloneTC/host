@@ -1,6 +1,7 @@
 package tech.standalonetc.host.struct.preset.chassis
 
 import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.linkTo
 import org.mechdancer.dataflow.core.minus
 import org.mechdancer.dataflow.core.post
 import org.mechdancer.dependency.*
@@ -29,8 +30,8 @@ open class MecanumChassis : UniqueComponent<MecanumChassis>(), Dependent, Chassi
                     x - y + w,
                     x + y + w
                 )
-            }.standardizeBy(maxPower)
-        } - {
+            }.standardizeByMaxPower()
+        } linkTo {
             lf.power post it[0]
             lb.power post it[1]
             rf.power post it[2]

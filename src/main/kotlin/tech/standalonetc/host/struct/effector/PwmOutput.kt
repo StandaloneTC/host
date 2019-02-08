@@ -1,7 +1,7 @@
 package tech.standalonetc.host.struct.effector
 
-import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dependency.Component
+import tech.standalonetc.host.DataBlock
 
 /**
  * Pwm output
@@ -11,6 +11,7 @@ import org.mechdancer.dependency.Component
  */
 interface PwmOutput : Component {
 
-    val pwmEnable: ISource<Boolean>
+    /** Pwm enable block */
+    val pwmEnable: DataBlock<Boolean>
 
 }

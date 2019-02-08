@@ -23,7 +23,6 @@ import tech.standalonetc.protocol.RobotPacket
 import tech.standalonetc.protocol.network.NetworkTools
 import tech.standalonetc.protocol.network.PacketCallback
 import java.io.Closeable
-import java.util.concurrent.ConcurrentSkipListSet
 
 open class Robot @JvmOverloads constructor(
     private val loggingNetwork: Boolean = false,
@@ -38,17 +37,14 @@ open class Robot @JvmOverloads constructor(
 
     private val availableDevices: MutableList<Device> = mutableListOf()
 
-    private var initialized = false
-
+    var initialized = false
+        private set
 
     //Sensors accessor
     private lateinit var encoders: Map<String, Encoder>
     private lateinit var gyros: Map<String, Gyro>
     private lateinit var touches: Map<String, TouchSensor>
     private lateinit var colors: Map<String, ColorSensor>
-
-
-    private val shutdownHook = ConcurrentSkipListSet<() -> Unit> { o1, o2 -> o1.hashCode().compareTo(o2.hashCode()) }
 
 
     private val packetListener: PacketCallback = {
@@ -124,12 +120,68 @@ open class Robot @JvmOverloads constructor(
     val opModeState = broadcast<OpModeState>()
 
     /**
-     * Init without parameters
-     *
-     * Should implemented by the child.
+     * Init use existing id
      */
-    open fun init() {
-        throw NotImplementedError("Not implemented")
+    fun init(oppositeTimeout: Long = Long.MAX_VALUE) {
+
+        //Avoid repeatedly call
+        if (initialized) throw IllegalStateException()
+
+        if (!this::idMapping.isInitialized) throw IllegalArgumentException("Unable to find id.")
+
+        val nameAndId = idMapping.entries.associate { (k, v) -> v to k }
+        val namedDevices = devices.associateBy { it.name }
+        initNetworkTools()
+        //Generate devices requests
+        val request = namedDevices.map { (name, _) ->
+            RobotPacket.DeviceDescriptionPacket(
+                nameAndId[name] ?: throw IllegalArgumentException("Device $name is not mapped with id"), name
+            )
+        }
+        logger.info("Devices need to request:")
+        request.forEach {
+            logger.info("id: ${it.deviceId} name: ${it.deviceName}")
+        }
+
+
+        //Wait opposite
+        repeatWithTimeout(oppositeTimeout) {
+            networkTools.askOppositeAddress()
+        } ?: throw RuntimeException("Unable to find opposite.")
+
+        logger.info("Find opposite.")
+
+        //Send request in parallel
+        val result =
+            runBlocking {
+                request.map {
+                    async(Dispatchers.IO) {
+                        namedDevices.getValue(it.deviceName) to (networkTools.sendPacket(it)?.decodeToBoolean()
+                            ?: false)
+                    }
+                }.awaitAll()
+            }.toMap()
+
+
+        //Process result
+        result.filterValues { !it }.forEach { (device, _) -> logger.error("Unable to obtain device $device") }
+        availableDevices.addAll(result.filterValues { it }.keys)
+
+
+        //Setup devices
+        setupAvailableDevices()
+
+        //Call init
+        components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
+
+        //Initialize sensor accessors
+        initSensors()
+
+        //Link outputs
+        linkOutputs(nameAndId)
+
+        logger.info("Initialized.")
+        initialized = true
     }
 
     /**
@@ -149,9 +201,7 @@ open class Robot @JvmOverloads constructor(
         //Save ids
         idMapping = nameAndId.entries.associate { (k, v) -> v to k }
 
-        //Use for send device requests
-        networkTools = NetworkTools("Host", "Robot", 2, 2, onPacketReceive = packetListener)
-        networkTools.setPacketConversion(RobotPacket.Conversion)
+        initNetworkTools()
 
         //Generate devices requests
         val request = namedDevices.map { (name, _) ->
@@ -189,6 +239,47 @@ open class Robot @JvmOverloads constructor(
         result.filterValues { !it }.forEach { (device, _) -> logger.error("Unable to obtain device $device") }
         availableDevices.addAll(result.filterValues { it }.keys)
 
+
+        //Setup devices
+        setupAvailableDevices()
+
+        //Call init
+        components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
+
+        //Initialize sensor accessors
+        initSensors()
+
+        //Link outputs
+        linkOutputs(nameAndId)
+
+        logger.info("Initialized.")
+        initialized = true
+    }
+
+    /**
+     * Init use existing id
+     *
+     * Without require devices.
+     */
+    fun initWithoutWaiting() {
+
+        //Avoid repeatedly call
+        if (initialized) throw IllegalStateException()
+
+        if (!this::idMapping.isInitialized) throw IllegalArgumentException("Unable to find id.")
+
+        val nameAndId = idMapping.entries.associate { (k, v) -> v to k }
+        val namedDevices = devices.associateBy { it.name }
+
+        initNetworkTools()
+
+        //Check id
+        namedDevices.forEach { (name, _) ->
+            nameAndId[name] ?: throw IllegalArgumentException("Device $name is not mapped with id")
+        }
+
+        //Assume that all devices are available
+        availableDevices.addAll(devices)
 
         //Setup devices
         setupAvailableDevices()
@@ -250,6 +341,9 @@ open class Robot @JvmOverloads constructor(
         initialized = true
     }
 
+    fun setIdMapping(vararg mapId: Pair<String, Byte>) {
+        idMapping = mapId.toMap().entries.associate { (k, v) -> v to k }
+    }
 
     private fun initNetworkTools() {
         networkTools = NetworkTools(
@@ -269,7 +363,6 @@ open class Robot @JvmOverloads constructor(
     private fun linkOutputs(nameAndId: Map<String, Byte>) {
         logger.info("Linking Motors")
         availableDevices.find<Motor>().forEach { device ->
-            shutdownHook.add { device.power.close() }
             device.power linkWithTransform {
                 networkTools.broadcastPacket(
                     RobotPacket.MotorPowerPacket(nameAndId.getValue(device.name), it)
@@ -279,13 +372,11 @@ open class Robot @JvmOverloads constructor(
 
         logger.info("Linking Servos")
         availableDevices.find<Servo>().forEach { device ->
-            shutdownHook.add { device.position.close() }
             device.position linkWithTransform {
                 networkTools.broadcastPacket(
                     RobotPacket.ServoPositionPacket(nameAndId.getValue(device.name), it)
                 )
             }
-            shutdownHook.add { device.pwmEnable.close() }
             device.pwmEnable linkWithTransform {
                 networkTools.broadcastPacket(
                     RobotPacket.PwmEnablePacket(nameAndId.getValue(device.name), it)
@@ -294,13 +385,11 @@ open class Robot @JvmOverloads constructor(
         }
         logger.info("Linking CRServos")
         availableDevices.find<ContinuousServo>().forEach { device ->
-            shutdownHook.add { device.power.close() }
             device.power linkWithTransform {
                 networkTools.broadcastPacket(
                     RobotPacket.ContinuousServoPowerPacket(nameAndId.getValue(device.name), it)
                 )
             }
-            shutdownHook.add { device.pwmEnable.close() }
             device.pwmEnable linkWithTransform {
                 networkTools.broadcastPacket(
                     RobotPacket.PwmEnablePacket(nameAndId.getValue(device.name), it)
@@ -326,9 +415,10 @@ open class Robot @JvmOverloads constructor(
     override fun close() {
         if (!initialized) return
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::stop)
-        shutdownHook.forEach { it() }
         networkTools.close()
         availableDevices.clear()
+        breakAllConnections()
+        initialized = false
     }
 
 }

@@ -1,6 +1,7 @@
 package tech.standalonetc.host
 
 import org.mechdancer.common.extension.log4j.loggerWrapper
+import org.mechdancer.dataflow.core.intefaces.IFullyBlock
 import org.mechdancer.dataflow.core.intefaces.ILink
 import org.mechdancer.dependency.NamedComponent
 import org.mechdancer.dependency.UniqueComponent
@@ -55,3 +56,5 @@ fun UniqueComponent<*>.joinPrefix(name: String) = "${type.simpleName!!.toLowerCa
 fun breakAllConnections() = ILink.list.forEach {
     it.dispose()
 }
+
+typealias DataBlock<T> = IFullyBlock<T, T>

@@ -89,3 +89,5 @@ fabric.properties
 .idea/httpRequests
 
 *.iml
+
+log/

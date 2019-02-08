@@ -1,7 +1,7 @@
 package tech.standalonetc.host.struct.effector
 
-import org.mechdancer.dataflow.core.intefaces.ISource
 import org.mechdancer.dependency.Component
+import tech.standalonetc.host.DataBlock
 
 /**
  * PowerOutput
@@ -11,7 +11,7 @@ import org.mechdancer.dependency.Component
  */
 interface PowerOutput : Component {
 
-    /**Power source*/
-    val power: ISource<Double>
+    /** Power block */
+    val power: DataBlock<Double>
 
 }
