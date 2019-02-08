@@ -1,6 +1,7 @@
 package tech.standalonetc.host
 
 import org.mechdancer.common.extension.log4j.loggerWrapper
+import org.mechdancer.dataflow.core.intefaces.ILink
 import org.mechdancer.dependency.NamedComponent
 import org.mechdancer.dependency.UniqueComponent
 import org.slf4j.Logger
@@ -38,13 +39,19 @@ fun Robot.setupDeviceBundle(block: DeviceBundle.() -> Unit) = setupDeviceBundle(
 
 fun Robot.setupDeviceBundleAndInit(deviceBundle: DeviceBundle, oppositeTimeout: Long = Long.MAX_VALUE) {
     setupDeviceBundle(deviceBundle)
-    init(*deviceBundle.idMapping.toList().toTypedArray(), oppositeTimeout = oppositeTimeout)
+    init(*deviceBundle.idMaps, oppositeTimeout = oppositeTimeout)
 }
 
 fun Robot.setupDeviceBundleAndInit(block: DeviceBundle.() -> Unit, oppositeTimeout: Long = Long.MAX_VALUE) =
     setupDeviceBundleAndInit(deviceBundle(block), oppositeTimeout)
 
+val DeviceBundle.idMaps
+    get() = idMapping.toList().toTypedArray()
+
 fun NamedComponent<*>.joinPrefix(name: String) = "${type.simpleName!!}[$name].$name"
 
 fun UniqueComponent<*>.joinPrefix(name: String) = "${type.simpleName!!.toLowerCase()}.$name"
 
+fun breakAllConnections() = ILink.list.forEach {
+    it.dispose()
+}

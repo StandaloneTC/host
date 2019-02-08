@@ -5,6 +5,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.mechdancer.common.concurrent.repeatWithTimeout
+import org.mechdancer.dataflow.core.broadcast
+import org.mechdancer.dataflow.core.post
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.plusAssign
 import tech.standalonetc.host.data.*
@@ -23,7 +25,7 @@ import tech.standalonetc.protocol.network.PacketCallback
 import java.io.Closeable
 import java.util.concurrent.ConcurrentSkipListSet
 
-class Robot(
+open class Robot @JvmOverloads constructor(
     private val loggingNetwork: Boolean = false,
     private val loggingRemoteHub: Boolean = false
 ) : DynamicScope(), Closeable {
@@ -81,7 +83,7 @@ class Robot(
             is RobotPacket.OperationPeriodPacket -> this@Robot.period = period
             is RobotPacket.OpModeInfoPacket -> {
                 this@Robot.opModeName = opModeName
-                this@Robot.opModeState = toOpModeState()
+                this@Robot.opModeState post toOpModeState()
             }
 
         }
@@ -117,10 +119,18 @@ class Robot(
         private set
 
     /**
-     * Current opMode state
+     * OpMode state
      */
-    var opModeState = OpModeState.Stop
-        private set
+    val opModeState = broadcast<OpModeState>()
+
+    /**
+     * Init without parameters
+     *
+     * Should implemented by the child.
+     */
+    open fun init() {
+        throw NotImplementedError("Not implemented")
+    }
 
     /**
      * Init host compute controller
@@ -129,10 +139,10 @@ class Robot(
      */
     fun init(vararg mapId: Pair<String, Byte>, oppositeTimeout: Long = Long.MAX_VALUE) {
 
-        val nameAndId: Map<String, Byte> = mapId.toMap()
-
         //Avoid repeatedly call
         if (initialized) throw IllegalStateException()
+
+        val nameAndId: Map<String, Byte> = mapId.toMap()
 
         val namedDevices = devices.associateBy { it.name }
 
@@ -203,10 +213,11 @@ class Robot(
      * Without require devices.
      */
     fun initWithoutWaiting(vararg mapId: Pair<String, Byte>) {
-        val nameAndId: Map<String, Byte> = mapId.toMap()
 
         //Avoid repeatedly call
         if (initialized) throw IllegalStateException()
+
+        val nameAndId: Map<String, Byte> = mapId.toMap()
 
         val namedDevices = devices.associateBy { it.name }
 
@@ -313,6 +324,7 @@ class Robot(
 
 
     override fun close() {
+        if (!initialized) return
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::stop)
         shutdownHook.forEach { it() }
         networkTools.close()

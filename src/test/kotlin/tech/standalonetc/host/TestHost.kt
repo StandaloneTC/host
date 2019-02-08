@@ -36,7 +36,7 @@ class TestHost {
 
         robot.setupDeviceBundle(devices)
 
-        robot.initWithoutWaiting(*devices.idMapping.toList().toTypedArray())
+        robot.initWithoutWaiting(*devices.idMaps)
 
     }
 
