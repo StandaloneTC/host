@@ -1,15 +1,26 @@
 package tech.standalonetc.host
 
 import org.mechdancer.dataflow.core.linkTo
+import org.mechdancer.dependency.Component
+import org.mechdancer.dependency.DependencyManager
+import org.mechdancer.dependency.Dependent
+import org.mechdancer.dependency.UniqueComponent
 import tech.standalonetc.host.data.OpModeState
-import java.io.Closeable
+import tech.standalonetc.host.struct.RobotComponent
 
-abstract class RobotProgram<T : Robot> : Runnable, Closeable {
+abstract class RobotProgram<T : Robot>
+    : UniqueComponent<RobotProgram<T>>(),
+    RobotComponent,
+    Dependent {
 
     protected lateinit var robot: T
         private set
 
-    protected fun init() {
+    protected val manager = DependencyManager()
+
+    final override fun sync(dependency: Component): Boolean = manager.sync(dependency)
+
+    internal fun hookOpMode() {
         robot.opModeState linkTo {
             when (it) {
                 OpModeState.Init -> onOpModeInit()
@@ -18,6 +29,7 @@ abstract class RobotProgram<T : Robot> : Runnable, Closeable {
             }
         }
     }
+
 
     protected open fun onOpModeInit() {
 

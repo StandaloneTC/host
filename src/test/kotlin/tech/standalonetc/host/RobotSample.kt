@@ -7,14 +7,14 @@ import tech.standalonetc.host.struct.RobotComponent
 import tech.standalonetc.host.struct.effector.Motor
 import tech.standalonetc.host.struct.effector.PowerOutput
 
-object ToriRobot : Robot() {
+object KotoriRobot : Robot() {
     init {
-        setIdMapping(*ToriDeviceBundle.idMaps)
-        setupDeviceBundle(ToriDeviceBundle)
+        setIdMapping(*KotoriDeviceBundle.idMaps)
+        setupDeviceBundle(KotoriDeviceBundle)
     }
 }
 
-object ToriDeviceBundle : DeviceBundle() {
+object KotoriDeviceBundle : DeviceBundle() {
     init {
         motor("apple")
     }
@@ -33,16 +33,14 @@ object AppleArm : UniqueComponent<AppleArm>(), RobotComponent, Dependent, PowerO
     }
 }
 
-class ToriTeleOp : RobotProgram<ToriRobot>() {
-    override fun run() {
+class KotoriTeleOp : RobotProgram<KotoriRobot>() {
+    override fun onOpModeInit() {
         robot.master.leftStick.valueChanged - { it.x } - AppleArm.power
     }
 
-    override fun close() {
-    }
 }
 
 fun main() {
-    val runner = RobotProgramRunner<ToriRobot>()
-    runner.switchProgram(ToriTeleOp::class)
+    val runner = RobotProgramRunner<KotoriRobot>()
+    runner.switchProgram(KotoriTeleOp::class)
 }

@@ -29,16 +29,15 @@ class RobotProgramRunner<T : Robot>(
     fun <R : RobotProgram<T>> switchProgram(robotProgram: KClass<R>) {
         robotProgram.java.getConstructor().newInstance().let { new ->
             RobotProgram::class.java.getDeclaredField("robot").also { it.isAccessible = true }.set(new, robot)
-            current.getAndSet(new)?.close()
             robot.close()
+            current.getAndSet(new)
             robot.init()
-            new.run()
         }
     }
 
     override fun close() {
-        current.getAndSet(null)?.close()
         robot.close()
+        current.getAndSet(null)
     }
 
 }
