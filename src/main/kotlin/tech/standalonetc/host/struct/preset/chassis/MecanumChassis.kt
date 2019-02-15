@@ -4,16 +4,18 @@ import org.mechdancer.dataflow.core.broadcast
 import org.mechdancer.dataflow.core.linkTo
 import org.mechdancer.dataflow.core.minus
 import org.mechdancer.dataflow.core.post
-import org.mechdancer.dependency.*
+import org.mechdancer.dependency.Component
+import org.mechdancer.dependency.must
+import tech.standalonetc.host.struct.UniqueRobotComponent
 import tech.standalonetc.host.struct.effector.Motor
 
-open class MecanumChassis : UniqueComponent<MecanumChassis>(), Dependent, Chassis {
-    private val manager = DependencyManager()
+open class MecanumChassis(name: String = "chassis")
+    : UniqueRobotComponent<MecanumChassis>(), Chassis {
 
-    private val lf by manager.must<Motor>("chassis.LF")
-    private val lb by manager.must<Motor>("chassis.LB")
-    private val rf by manager.must<Motor>("chassis.RF")
-    private val rb by manager.must<Motor>("chassis.RB")
+    private val lf by manager.must<Motor>("$name.LF")
+    private val lb by manager.must<Motor>("$name.LB")
+    private val rf by manager.must<Motor>("$name.RF")
+    private val rb by manager.must<Motor>("$name.RB")
 
     val descartesControl = broadcast<Descartes>()
 
@@ -40,7 +42,4 @@ open class MecanumChassis : UniqueComponent<MecanumChassis>(), Dependent, Chassi
     }
 
     data class Descartes(val x: Double, val y: Double, val w: Double)
-
-    override fun toString(): String = javaClass.simpleName
-
 }
