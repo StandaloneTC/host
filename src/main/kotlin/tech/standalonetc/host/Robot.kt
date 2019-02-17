@@ -51,11 +51,11 @@ open class Robot @JvmOverloads constructor(
         when (this) {
 
             //Encoder
-            is RobotPacket.EncoderDataPacket ->
+            is RobotPacket.EncoderDataPacket     ->
                 encoders[idMapping[id]]?.update(toEncoderData())
 
             //Gyro
-            is RobotPacket.GyroDataPacket ->
+            is RobotPacket.GyroDataPacket        ->
                 gyros[idMapping[id]]?.update(toGyroData())
 
             //TouchSensor
@@ -67,7 +67,7 @@ open class Robot @JvmOverloads constructor(
                 colors[idMapping[id]]?.update(toColorSensorData())
 
             //Gamepad
-            is RobotPacket.GamepadDataPacket -> toGamepadData().let {
+            is RobotPacket.GamepadDataPacket     -> toGamepadData().let {
                 when (id) {
                     RobotPacket.BuiltinId.GamepadMaster -> master.update(it)
                     RobotPacket.BuiltinId.GamepadHelper -> helper.update(it)
@@ -75,9 +75,9 @@ open class Robot @JvmOverloads constructor(
             }
 
             //Environment
-            is RobotPacket.VoltageDataPacket -> voltageSensor.update(voltage)
+            is RobotPacket.VoltageDataPacket     -> voltageSensor.update(voltage)
             is RobotPacket.OperationPeriodPacket -> this@Robot.period = period
-            is RobotPacket.OpModeInfoPacket -> {
+            is RobotPacket.OpModeInfoPacket      -> {
                 this@Robot.opModeName = opModeName
                 this@Robot.opModeState post toOpModeState()
             }
@@ -131,6 +131,7 @@ open class Robot @JvmOverloads constructor(
 
         val nameAndId = idMapping.entries.associate { (k, v) -> v to k }
         val namedDevices = devices.associateBy { it.name }
+
         initNetworkTools()
         //Generate devices requests
         val request = namedDevices.map { (name, _) ->
@@ -184,77 +185,6 @@ open class Robot @JvmOverloads constructor(
         initialized = true
     }
 
-    /**
-     * Init host compute controller
-     *
-     * Repeated calls will produce an exception
-     */
-    fun init(vararg mapId: Pair<String, Byte>, oppositeTimeout: Long = Long.MAX_VALUE) {
-
-        //Avoid repeatedly call
-        if (initialized) throw IllegalStateException()
-
-        val nameAndId: Map<String, Byte> = mapId.toMap()
-
-        val namedDevices = devices.associateBy { it.name }
-
-        //Save ids
-        idMapping = nameAndId.entries.associate { (k, v) -> v to k }
-
-        initNetworkTools()
-
-        //Generate devices requests
-        val request = namedDevices.map { (name, _) ->
-            RobotPacket.DeviceDescriptionPacket(
-                nameAndId[name] ?: throw IllegalArgumentException("Device $name is not mapped with id"), name
-            )
-        }
-
-        logger.info("Devices need to request:")
-        request.forEach {
-            logger.info("id: ${it.deviceId} name: ${it.deviceName}")
-        }
-
-
-        //Wait opposite
-        repeatWithTimeout(oppositeTimeout) {
-            networkTools.askOppositeAddress()
-        } ?: throw RuntimeException("Unable to find opposite.")
-
-        logger.info("Find opposite.")
-
-        //Send request in parallel
-        val result =
-            runBlocking {
-                request.map {
-                    async(Dispatchers.IO) {
-                        namedDevices.getValue(it.deviceName) to (networkTools.sendPacket(it)?.decodeToBoolean()
-                            ?: false)
-                    }
-                }.awaitAll()
-            }.toMap()
-
-
-        //Process result
-        result.filterValues { !it }.forEach { (device, _) -> logger.error("Unable to obtain device $device") }
-        availableDevices.addAll(result.filterValues { it }.keys)
-
-
-        //Setup devices
-        setupAvailableDevices()
-
-        //Call init
-        components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
-
-        //Initialize sensor accessors
-        initSensors()
-
-        //Link outputs
-        linkOutputs(nameAndId)
-
-        logger.info("Initialized.")
-        initialized = true
-    }
 
     /**
      * Init use existing id
@@ -297,49 +227,6 @@ open class Robot @JvmOverloads constructor(
         initialized = true
     }
 
-
-    /**
-     * Init host computer controller
-     *
-     * Without require devices.
-     */
-    fun initWithoutWaiting(vararg mapId: Pair<String, Byte>) {
-
-        //Avoid repeatedly call
-        if (initialized) throw IllegalStateException()
-
-        val nameAndId: Map<String, Byte> = mapId.toMap()
-
-        val namedDevices = devices.associateBy { it.name }
-
-        //Save ids
-        idMapping = nameAndId.entries.associate { (k, v) -> v to k }
-
-        initNetworkTools()
-
-        //Check id
-        namedDevices.forEach { (name, _) ->
-            nameAndId[name] ?: throw IllegalArgumentException("Device $name is not mapped with id")
-        }
-
-        //Assume that all devices are available
-        availableDevices.addAll(devices)
-
-        //Setup devices
-        setupAvailableDevices()
-
-        //Call init
-        components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
-
-        //Initialize sensor accessors
-        initSensors()
-
-        //Link outputs
-        linkOutputs(nameAndId)
-
-        logger.info("Initialized.")
-        initialized = true
-    }
 
     fun setIdMapping(vararg mapId: Pair<String, Byte>) {
         idMapping = mapId.toMap().entries.associate { (k, v) -> v to k }
