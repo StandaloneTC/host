@@ -32,15 +32,3 @@ object AppleArm : UniqueComponent<AppleArm>(), RobotComponent, Dependent, PowerO
         power - { it - 0.1/*某些操作*/ } - motor.power
     }
 }
-
-class KotoriTeleOp : RobotProgram<KotoriRobot>() {
-    override fun onOpModeInit() {
-        robot.master.leftStick.valueChanged - { it.x } - AppleArm.power
-    }
-
-}
-
-fun main() {
-    val runner = RobotProgramRunner<KotoriRobot>()
-    runner.switchProgram(KotoriTeleOp::class)
-}

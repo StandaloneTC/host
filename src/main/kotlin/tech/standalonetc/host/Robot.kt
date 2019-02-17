@@ -37,6 +37,12 @@ open class Robot @JvmOverloads constructor(
 
     private val availableDevices: MutableList<Device> = mutableListOf()
 
+    var robotCallback: RobotCallback<Robot>? = null
+        set(value) {
+            value?.hookOpMode(this)
+            field = value
+        }
+
     var initialized = false
         private set
 
@@ -174,6 +180,7 @@ open class Robot @JvmOverloads constructor(
 
         //Call init
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
+        robotCallback?.init(this)
 
         //Initialize sensor accessors
         initSensors()
@@ -216,6 +223,7 @@ open class Robot @JvmOverloads constructor(
 
         //Call init
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::init)
+        robotCallback?.init(this)
 
         //Initialize sensor accessors
         initSensors()
@@ -302,6 +310,7 @@ open class Robot @JvmOverloads constructor(
     override fun close() {
         if (!initialized) return
         components.mapNotNull { it as? RobotComponent }.forEach(RobotComponent::stop)
+        robotCallback?.stop(this)
         networkTools.close()
         availableDevices.clear()
         breakAllConnections()

@@ -32,6 +32,6 @@ abstract class TreeComponent(
     final override fun hashCode() =
         (parent.hashCode() shl 31) + name.hashCode()
 
-    fun String.joinPrefix() = "${toString()}.$this"
+    fun String.joinPrefix() = "${this@TreeComponent}.$this"
 
 }

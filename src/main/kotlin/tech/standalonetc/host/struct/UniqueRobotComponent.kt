@@ -12,5 +12,5 @@ abstract class UniqueRobotComponent<T : UniqueRobotComponent<T>>
 
     override fun toString(): String = javaClass.simpleName.toLowerCase()
 
-    fun String.joinPrefix() = "${toString()}.$this"
+    fun String.joinPrefix() = "${this@UniqueRobotComponent}.$this"
 }
