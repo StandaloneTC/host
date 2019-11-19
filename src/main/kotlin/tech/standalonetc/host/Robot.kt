@@ -5,6 +5,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.mechdancer.common.concurrent.repeatWithTimeout
+import org.mechdancer.common.extension.log4j.logger
 import org.mechdancer.dataflow.core.broadcast
 import org.mechdancer.dataflow.core.post
 import org.mechdancer.dependency.DynamicScope
@@ -250,7 +251,7 @@ open class Robot @JvmOverloads constructor(
             enableRemoteHubLogger = loggingRemoteHub,
             loggerConfig = {
                 if (loggingNetwork)
-                    loggingConfig(this)
+                    loggingConfig(logger(name))
             })
         networkTools.setPacketConversion(RobotPacket.Conversion)
     }

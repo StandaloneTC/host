@@ -9,9 +9,9 @@ import org.mechdancer.dependency.DynamicScope
 /**
  * Add a tree component [root] to scope recursively.
  */
-fun DynamicScope.setupRecursive(root: TreeComponent) {
+fun DynamicScope.setupRecursively(root: TreeComponent) {
     setup(root)
-    root.children.forEach(this::setupRecursive)
+    root.children.forEach(this::setupRecursively)
 }
 
 /**

@@ -4,7 +4,6 @@ import org.mechdancer.dataflow.core.broadcast
 import org.mechdancer.dataflow.core.linkTo
 import org.mechdancer.dataflow.core.minus
 import org.mechdancer.dataflow.core.post
-import org.mechdancer.dependency.Component
 import org.mechdancer.dependency.must
 import tech.standalonetc.host.struct.UniqueRobotComponent
 import tech.standalonetc.host.struct.effector.Motor
@@ -20,8 +19,6 @@ open class MecanumChassis(name: String = "chassis")
     val descartesControl = broadcast<Descartes>()
 
     override var maxPower = 1.0
-
-    override fun sync(dependency: Component): Boolean = manager.sync(dependency)
 
     override fun init() {
         descartesControl - {

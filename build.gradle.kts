@@ -1,21 +1,18 @@
-import com.novoda.gradle.release.PublishExtension
-import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-
-    dependencies {
-        classpath("org.jetbrains.dokka:dokka-gradle-plugin")
-        classpath("com.novoda:bintray-release:+")
-    }
+plugins {
+    kotlin("jvm") version "1.3.50" apply (true)
+    id("org.jetbrains.dokka") version "0.10.0"
+    `build-scan`
 }
 
+buildScan {
+    termsOfServiceUrl = "https://gradle.com/terms-of-service"
+    termsOfServiceAgree = "yes"
+    publishAlways()
+}
 
-group = "tech.standalonetc"
+group = "org.mechdancer"
 version = "0.0.1"
 
 repositories {
@@ -23,46 +20,33 @@ repositories {
     jcenter()
 }
 
-plugins {
-    kotlin("jvm") version "1.3.21"
-    id("org.jetbrains.dokka") version "0.9.17"
-}
-
-apply {
-    plugin("com.novoda.bintray-release")
-}
-
-task<Jar>("javadocJar") {
-    group = "build"
-    classifier = "javadoc"
-    from("$buildDir/javadoc")
-}
-
-task<Jar>("sourcesJar") {
-    classifier = "sources"
-    from(sourceSets["main"].allSource)
-}
-
-tasks.withType<DokkaTask> {
-    outputFormat = "javadoc"
-    outputDirectory = "$buildDir/javadoc"
-}
-
-tasks["javadoc"].dependsOn("dokka")
-tasks["jar"].dependsOn("sourcesJar")
-tasks["jar"].dependsOn("javadocJar")
-
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.3.2")
 
     implementation("tech.standalonetc", "protocol", "0.2.4")
 
+    implementation("org.mechdancer", "common-extension", "0.1.0-3")
+    implementation("org.mechdancer", "common-concurrent", "0.1.0-3")
+    implementation("org.mechdancer", "common-extension-log4j", "0.1.0-3") {
+        exclude("log4j")
+    }
+    implementation("org.mechdancer", "remote", "0.2.1-dev-13") {
+        exclude("org.slf4j")
+    }
+    implementation("org.mechdancer", "dependency", "0.1.0-rc-3")
+    implementation("org.mechdancer", "dataflow-jvm", "0.2.0-dev-6")
+    implementation("org.slf4j", "slf4j-log4j12", "1.7.29")
 
-    implementation("org.mechdancer:dataflow-jvm:0.2.0-dev-5")
-    implementation("org.mechdancer:common-concurrent:v0.1.0-1")
-    implementation("org.mechdancer:common-extension-log4j:v0.1.0-1")
+    testImplementation("junit", "junit", "4.12")
+    testImplementation(kotlin("test-junit"))
+}
 
-    testCompile("junit", "junit", "4.12")
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.3.50")
+        force("org.jetbrains.kotlin:kotlin-reflect:1.3.50")
+    }
 }
 
 tasks.withType<KotlinCompile> {
@@ -71,13 +55,44 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-configure<PublishExtension> {
-    userOrg = "standalonetc"
-    groupId = "tech.standalonetc"
-    artifactId = "host"
-    publishVersion = version.toString()
-    desc = "host of standalone"
-    website = "https://github.com/StandaloneTC/host"
-    issueTracker = "https://github.com/StandaloneTC/host/issues"
-    repository = "https://github.com/StandaloneTC/host.git"
+tasks.dokka {
+    outputFormat = "javadoc"
+    outputDirectory = "$buildDir/javadoc"
+}
+
+val doc = tasks.register<Jar>("javadocJar") {
+    group = JavaBasePlugin.DOCUMENTATION_GROUP
+    description = "Assembles Kotlin docs with Dokka"
+    archiveClassifier.set("javadoc")
+    from(tasks.dokka)
+}
+
+val sources = tasks.register<Jar>("sourcesJar") {
+    group = JavaBasePlugin.BUILD_TASK_NAME
+    description = "Creates sources jar"
+    archiveClassifier.set("sources")
+    from(sourceSets.main.get().allSource)
+}
+
+val fat = tasks.register<Jar>("fatJar") {
+    group = JavaBasePlugin.BUILD_TASK_NAME
+    description = "Packs binary output with dependencies"
+    archiveClassifier.set("all")
+    from(sourceSets.main.get().output)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+}
+
+tasks.register("allJars") {
+    group = JavaBasePlugin.BUILD_TASK_NAME
+    description = "Assembles all jars in one task"
+    dependsOn(doc, sources, fat, tasks.jar)
+}
+
+artifacts {
+    add("archives", tasks.jar)
+    add("archives", fat)
+    add("archives", sources)
+    add("archives", doc)
 }

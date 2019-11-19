@@ -1,10 +1,9 @@
 package tech.standalonetc.host
 
+import org.apache.log4j.Logger
 import org.mechdancer.common.extension.log4j.loggerWrapper
 import org.mechdancer.dataflow.core.intefaces.IFullyBlock
-import org.mechdancer.dataflow.core.intefaces.ILink
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.mechdancer.dataflow.util.LinkServer
 import tech.standalonetc.host.struct.Device
 
 fun ByteArray.decodeToBoolean() = when (firstOrNull()?.toInt()) {
@@ -23,7 +22,7 @@ val loggingConfig = loggerWrapper {
     file()
 }
 
-val logger: Logger = LoggerFactory.getLogger("Robot").also(loggingConfig)
+val logger: Logger = Logger.getLogger("Robot").also(loggingConfig)
 
 fun deviceBundle(block: DeviceBundle.() -> Unit) = DeviceBundle().apply(block)
 
@@ -49,8 +48,6 @@ fun Robot.setupDeviceBundleAndInit(block: DeviceBundle.() -> Unit, oppositeTimeo
 val DeviceBundle.idMaps
     get() = idMapping.toList().toTypedArray()
 
-fun breakAllConnections() = ILink.list.forEach {
-    it.dispose()
-}
+fun breakAllConnections() = LinkServer.list.forEach { it.close() }
 
 typealias DataBlock<T> = IFullyBlock<T, T>

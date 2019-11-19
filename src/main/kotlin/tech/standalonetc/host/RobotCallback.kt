@@ -9,7 +9,7 @@ abstract class RobotCallback<T : Robot> {
     private var opModeStateHook: ILink<OpModeState>? = null
 
     internal fun hookOpMode(robot: T) {
-        opModeStateHook?.dispose()
+        opModeStateHook?.close()
         opModeStateHook = robot.opModeState linkTo {
             when (it) {
                 OpModeState.Init  -> onOpModeInit(robot)
